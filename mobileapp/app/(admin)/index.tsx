@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, RefreshControl,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -25,14 +26,19 @@ const STAT_CARDS = (r: ReportDTO) => [
 ];
 
 const QUICK_LINKS = [
-  { label: 'User Audit', route: 'users', color: '#2563eb' },
-  { label: 'Class Mgmt', route: 'classes', color: '#059669' },
-  { label: 'Exams', route: 'exams', color: '#d97706' },
-  { label: 'Reports', route: 'reports', color: '#7c3aed' },
+  { label: 'User Audit', route: 'users', icon: '👥', color: '#2563eb' },
+  { label: 'Class Mgmt', route: 'classes', icon: '🏫', color: '#059669' },
+  { label: 'Exams', route: 'exams', icon: '📝', color: '#d97706' },
+  { label: 'Results', route: 'results', icon: '🏆', color: '#7c3aed' },
+  { label: 'Timetable', route: 'timetable', icon: '🗓', color: '#0891b2' },
+  { label: 'Reports', route: 'reports', icon: '📊', color: '#be185d' },
+  { label: 'Materials', route: 'materials', icon: '📁', color: '#b45309' },
+  { label: 'Subjects', route: 'subjects', icon: '📚', color: '#15803d' },
 ];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const router = useRouter();
   const [report, setReport] = useState<ReportDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,8 +57,6 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchReport(); }, []);
 
-  const onRefresh = () => { setRefreshing(true); fetchReport(); };
-
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -66,7 +70,7 @@ export default function AdminDashboard() {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchReport(); }} tintColor="#3b82f6" />}
     >
       {/* Header */}
       <View style={styles.headerSection}>
@@ -92,7 +96,7 @@ export default function AdminDashboard() {
               <View key={card.title} style={[styles.statCard, { borderLeftColor: card.color }]}>
                 <Text style={styles.statIcon}>{card.icon}</Text>
                 <Text style={[styles.statValue, { color: card.color }]}>
-                  {card.value.toLocaleString()}
+                  {card.value?.toLocaleString() ?? '—'}
                 </Text>
                 <Text style={styles.statLabel}>{card.title}</Text>
               </View>
@@ -101,14 +105,17 @@ export default function AdminDashboard() {
         </View>
       )}
 
-      {/* Quick Actions */}
+      {/* Quick Actions — now with working navigation */}
       <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
       <View style={styles.quickGrid}>
         {QUICK_LINKS.map((link) => (
           <TouchableOpacity
             key={link.route}
             style={[styles.quickCard, { backgroundColor: link.color }]}
+            onPress={() => router.push(`/(admin)/${link.route}` as any)}
+            activeOpacity={0.8}
           >
+            <Text style={styles.quickIcon}>{link.icon}</Text>
             <Text style={styles.quickLabel}>{link.label}</Text>
             <Text style={styles.quickArrow}>→</Text>
           </TouchableOpacity>
@@ -134,49 +141,26 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc', gap: 12 },
   loadingText: { color: '#64748b', fontWeight: '700', fontSize: 12, letterSpacing: 2 },
-  headerSection: {
-    backgroundColor: '#0f172a',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 24,
-  },
+  headerSection: { backgroundColor: '#0f172a', borderRadius: 24, padding: 24, marginBottom: 24 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   greeting: { color: '#64748b', fontSize: 12, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
   name: { color: '#f8fafc', fontSize: 24, fontWeight: '900', letterSpacing: -0.5 },
-  statusChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-  },
+  statusChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10b981' },
   statusText: { color: '#10b981', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
   headerSub: { color: '#475569', fontSize: 13, fontWeight: '600' },
-  sectionTitle: {
-    fontSize: 10, fontWeight: '900', color: '#94a3b8',
-    letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, marginTop: 4,
-  },
+  sectionTitle: { fontSize: 10, fontWeight: '900', color: '#94a3b8', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, marginTop: 4 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  statCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    width: '47%', borderLeftWidth: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
+  statCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, width: '47%', borderLeftWidth: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
   statIcon: { fontSize: 22, marginBottom: 8 },
   statValue: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
   statLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  quickCard: {
-    width: '47%', borderRadius: 16, padding: 20,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15, shadowRadius: 10, elevation: 5,
-  },
-  quickLabel: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  quickArrow: { color: '#ffffff88', fontSize: 18, fontWeight: '900' },
-  registryCard: {
-    backgroundColor: '#1e3a5f', borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: '#2563eb33',
-  },
+  quickCard: { width: '47%', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 },
+  quickIcon: { fontSize: 22, marginBottom: 8 },
+  quickLabel: { color: '#fff', fontSize: 13, fontWeight: '800', marginBottom: 4 },
+  quickArrow: { color: '#ffffff88', fontSize: 16, fontWeight: '900' },
+  registryCard: { backgroundColor: '#1e3a5f', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#2563eb33' },
   registryTitle: { color: '#f8fafc', fontSize: 18, fontWeight: '900', marginBottom: 8 },
   registryBody: { color: '#94a3b8', fontSize: 13, lineHeight: 20, marginBottom: 16 },
   registryBadge: { backgroundColor: '#ffffff15', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, alignSelf: 'flex-start' },
