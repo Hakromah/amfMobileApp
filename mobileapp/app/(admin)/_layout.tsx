@@ -54,7 +54,16 @@ function CustomDrawerContent({ navigation }: any) {
       {/* Logout — sits above system bottom bar */}
       <TouchableOpacity
         style={[styles.logoutBtn, { marginBottom: insets.bottom + 12 }]}
-        onPress={logout}
+        onPress={() => {
+          navigation.closeDrawer();
+          setTimeout(async () => {
+            try {
+              await logout();
+            } catch (e) {
+              console.error('Logout failed:', e);
+            }
+          }, 400); // 400ms ensures Drawer animation is completely finished
+        }}
       >
         <Text style={styles.logoutText}>🚪 Sign Out</Text>
       </TouchableOpacity>

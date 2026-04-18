@@ -88,11 +88,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await clearAll();
+    try {
+      await clearAll();
+    } catch (e) {
+      console.warn('SecureStore cleanup ignored:', e);
+    }
+    
     setToken(null);
     setRole(null);
     setUser(null);
-    router.replace('/(public)' as any);
+
+    // Give React a frame to flush context state before destroying the navigator layout
+    setTimeout(() => {
+      try {
+        router.replace('/(landing)');
+      } catch (e) {
+        try {
+          router.push('/(landing)');
+        } catch (e2) {
+          console.error('Fatal routing error', e2);
+        }
+      }
+    }, 50);
   };
 
   return (

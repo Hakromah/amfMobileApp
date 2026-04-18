@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-// Everyone starts at the public app by default
+// We redirect to the unambiguous (landing) group to ensure absolute paths resolve properly anywhere in the app
 export default function Index() {
-  return <Redirect href={'/(public)' as any} />;
+  return <Redirect href={'/(landing)' as any} />;
 }
