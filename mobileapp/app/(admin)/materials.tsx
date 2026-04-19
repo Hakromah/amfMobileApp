@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Alert, Linking } from 'react-native';
-import api from '@/lib/api';
-import { STRAPI_BASE_URL } from '@/lib/config';
+import api from '@/hooks/lib/api';
+import { STRAPI_BASE_URL } from '@/hooks/lib/config';
 
 interface Material { id: number; title?: string; name?: string; fileUrl?: string; type?: string; }
 

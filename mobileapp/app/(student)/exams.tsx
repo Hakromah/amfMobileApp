@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface Exam {
   id: number;

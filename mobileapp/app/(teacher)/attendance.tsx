@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   TouchableOpacity, ScrollView, RefreshControl, Alert, Switch,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface Student {
   id: number;

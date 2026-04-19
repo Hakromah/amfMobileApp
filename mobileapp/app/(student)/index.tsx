@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   RefreshControl, TouchableOpacity,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 interface DashboardStats {

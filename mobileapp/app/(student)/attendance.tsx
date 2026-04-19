@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, Alert, TouchableOpacity, Modal, ScrollView
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface AttendanceSession {
   id: number;

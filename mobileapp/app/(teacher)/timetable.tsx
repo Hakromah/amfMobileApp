@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   TouchableOpacity, ScrollView, RefreshControl,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface TimetableEntry {
   id: number;

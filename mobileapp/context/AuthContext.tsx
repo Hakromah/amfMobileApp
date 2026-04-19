@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { router } from 'expo-router';
-import api from '@/lib/api';
-import { saveToken, getToken, saveRole, getRole, saveUser, getUser, clearAll } from '@/lib/auth';
+import api from '@/hooks/lib/api';
+import { saveToken, getToken, saveRole, getRole, saveUser, getUser, clearAll } from '@/hooks/lib/auth';
 
 interface UserProfile {
   id: number;
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('SecureStore cleanup ignored:', e);
     }
-    
+
     setToken(null);
     setRole(null);
     setUser(null);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 import { useAuth } from '@/context/AuthContext';
 interface Profile { name?: string; email?: string; username?: string; userId?: string; gender?: string; phoneNumber?: string; }
 export default function TeacherProfileScreen() {

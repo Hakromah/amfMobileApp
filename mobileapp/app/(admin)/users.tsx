@@ -4,7 +4,7 @@ import {
   TouchableOpacity, TextInput, RefreshControl, Alert,
   Modal, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface UserItem {
   id: number;
@@ -86,12 +86,12 @@ export default function UsersScreen() {
         role: form.role,
       };
       // Only send optional fields if they have a value (avoids backend validation errors)
-      if (form.birthDate.trim())    payload.birthDate    = form.birthDate.trim();
+      if (form.birthDate.trim()) payload.birthDate = form.birthDate.trim();
       if (form.birthCountry.trim()) payload.birthCountry = form.birthCountry.trim();
-      if (form.birthCity.trim())    payload.birthCity    = form.birthCity.trim();
-      if (form.address.trim())      payload.address      = form.address.trim();
-      if (form.gender)              payload.gender       = form.gender;
-      if (form.phoneNumber.trim())  payload.phoneNumber  = form.phoneNumber.trim();
+      if (form.birthCity.trim()) payload.birthCity = form.birthCity.trim();
+      if (form.address.trim()) payload.address = form.address.trim();
+      if (form.gender) payload.gender = form.gender;
+      if (form.phoneNumber.trim()) payload.phoneNumber = form.phoneNumber.trim();
 
       await api.post('/admin/users', payload);
       Alert.alert('Success', 'User created successfully.');

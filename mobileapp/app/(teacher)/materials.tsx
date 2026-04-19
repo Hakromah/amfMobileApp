@@ -5,8 +5,8 @@ import {
   KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import api from '@/lib/api';
-import { getStrapiMediaUrl } from '@/lib/config';
+import api from '@/hooks/lib/api';
+import { getStrapiMediaUrl } from '@/hooks/lib/config';
 
 interface Material {
   id: number;

@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, Alert, TouchableOpacity, Modal, ScrollView
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -94,7 +94,7 @@ export default function StudentResultsScreen() {
               <p>Generated: ${date}</p>
             </div>
           </div>
-          
+
           <h2 style="font-size: 18px; margin-bottom: 15px;">STUDENT PROFILE</h2>
           <div class="info-grid">
             <div class="info-item">

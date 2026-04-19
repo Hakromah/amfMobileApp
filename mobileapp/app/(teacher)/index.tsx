@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 interface ClassItem { id: number; name: string; students?: any[]; }
@@ -35,8 +35,8 @@ export default function TeacherDashboard() {
   useEffect(() => { fetchAll(); }, []);
 
   const totalStudents = useMemo(() => classes.reduce((acc, c) => acc + (c.students?.length || 0), 0), [classes]);
-  const now = new Date(); now.setHours(0,0,0,0);
-  const upcoming = useMemo(() => exams.filter(e => new Date(e.date) >= now).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0,3), [exams]);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const upcoming = useMemo(() => exams.filter(e => new Date(e.date) >= now).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 3), [exams]);
   const recentResults = results.slice(0, 5);
 
   if (loading) return <View style={s.centered}><ActivityIndicator size="large" color="#10b981" /><Text style={s.loadingText}>Syncing Registry...</Text></View>;
@@ -81,7 +81,7 @@ export default function TeacherDashboard() {
             </View>
             <View style={s.examDateBlock}>
               <Text style={[s.examDate, i === 0 && { color: '#fff' }]}>{new Date(ex.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
-              {ex.startTime && <Text style={[s.examTime, i === 0 && { color: '#93c5fd' }]}>⏰ {ex.startTime.slice(0,5)}</Text>}
+              {ex.startTime && <Text style={[s.examTime, i === 0 && { color: '#93c5fd' }]}>⏰ {ex.startTime.slice(0, 5)}</Text>}
             </View>
           </View>
         )) : <Text style={s.empty}>No upcoming exams.</Text>}

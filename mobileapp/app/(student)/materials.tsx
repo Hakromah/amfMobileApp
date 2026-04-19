@@ -3,8 +3,8 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, Alert, TouchableOpacity, Linking, Modal, ScrollView
 } from 'react-native';
-import api from '@/lib/api';
-import { getStrapiMediaUrl } from '@/lib/config';
+import api from '@/hooks/lib/api';
+import { getStrapiMediaUrl } from '@/hooks/lib/config';
 
 interface Material {
   id: number;

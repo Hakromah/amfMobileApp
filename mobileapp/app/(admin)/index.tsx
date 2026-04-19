@@ -4,7 +4,7 @@ import {
   TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 interface ReportDTO {

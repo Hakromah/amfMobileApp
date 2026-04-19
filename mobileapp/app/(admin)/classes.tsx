@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   TouchableOpacity, TextInput, RefreshControl, Alert, Modal,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface ClassItem { id: number; name: string; grade: string; }
 
@@ -45,10 +45,12 @@ export default function ClassesScreen() {
   const handleDelete = (id: number, name: string) => {
     Alert.alert('Delete Class', `Delete "${name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try { await api.delete(`/admin/classes/${id}`); fetchClasses(); }
-        catch { Alert.alert('Error', 'Failed to delete.'); }
-      }},
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try { await api.delete(`/admin/classes/${id}`); fetchClasses(); }
+          catch { Alert.alert('Error', 'Failed to delete.'); }
+        }
+      },
     ]);
   };
 

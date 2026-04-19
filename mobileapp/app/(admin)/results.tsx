@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface Result {
   id: number;
@@ -254,8 +254,8 @@ export default function AdminResultsScreen() {
           {transcripting
             ? <ActivityIndicator color="#fff" size="small" />
             : <Text style={s.transcriptBtnText}>
-                📄 {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export Visible Results'}
-              </Text>
+              📄 {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export Visible Results'}
+            </Text>
           }
         </TouchableOpacity>
       </View>

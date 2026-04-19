@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl, Alert, TextInput } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 interface Student { userId?: string; id: number; name?: string; username?: string; email?: string; }
 export default function TeacherStudentsScreen() {
   const [students, setStudents] = useState<Student[]>([]);

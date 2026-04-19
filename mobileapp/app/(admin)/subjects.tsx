@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput, RefreshControl, Alert, Modal } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface Subject { id: number; name: string; code?: string; }
 

@@ -3,7 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   TouchableOpacity, TextInput, Alert, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface Exam {
   id: number;

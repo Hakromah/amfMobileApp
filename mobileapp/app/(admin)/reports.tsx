@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, Alert } from 'react-native';
-import api from '@/lib/api';
+import api from '@/hooks/lib/api';
 
 interface ReportDTO { totalStudents: number; totalTeachers: number; totalAdmins: number; totalClasses: number; totalExams: number; totalSubjects: number; }
 
