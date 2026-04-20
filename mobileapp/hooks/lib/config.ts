@@ -15,12 +15,13 @@ const PLATFORM: Platform = 'production';
 const YOUR_LOCAL_IP = '192.168.1.100';
 // ────────────────────────────────────────────────────────────────────────────
 
-const STRAPI_CLOUD = 'https://engaging-heart-abbd6e0d5c.strapiapp.com';
+const STRAPI_CLOUD = 'https://diplomatic-splendor-66cebff67a.strapiapp.com';
 
 const BACKENDS: Record<Platform, { strapi: string }> = {
   emulator: { strapi: 'http://10.0.2.2:1337' },
   device: { strapi: `http://${YOUR_LOCAL_IP}:1337` },
   production: { strapi: STRAPI_CLOUD },
+
 };
 
 export const STRAPI_BASE_URL = BACKENDS[PLATFORM].strapi;
