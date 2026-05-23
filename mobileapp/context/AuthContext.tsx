@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { router } from 'expo-router';
-import api from '@/hooks/lib/api';
+//import api from '@/hooks/lib/api';
+import api from '@/hooks/lib/strapi';
 import { saveToken, getToken, saveRole, getRole, saveUser, getUser, clearAll } from '@/hooks/lib/auth';
 
 interface UserProfile {

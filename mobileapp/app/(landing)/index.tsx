@@ -9,7 +9,8 @@ export default function LandingPage() {
   const router = useRouter();
 
   const handleOpenWebsite = async () => {
-    const url = 'https://amfofana.vercel.app/';
+    const url = 'https://hassanskdev.online/';
+    //const url = 'https://amfofana.vercel.app/';
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       await Linking.openURL(url);
