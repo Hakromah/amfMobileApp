@@ -15,7 +15,8 @@ const PLATFORM: Platform = 'production';
 const YOUR_LOCAL_IP = '192.168.1.100';
 // ────────────────────────────────────────────────────────────────────────────
 
-const STRAPI_CLOUD = 'https://diplomatic-splendor-66cebff67a.strapiapp.com';
+const STRAPI_CLOUD = 'https://api.hassanskdev.online';
+//const STRAPI_CLOUD = 'https://diplomatic-splendor-66cebff67a.strapiapp.com';
 
 const BACKENDS: Record<Platform, { strapi: string }> = {
   emulator: { strapi: 'http://10.0.2.2:1337' },
