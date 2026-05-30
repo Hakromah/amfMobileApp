@@ -15,6 +15,7 @@ const ADMIN_ROUTES = [
   { name: 'timetable', label: 'Timetable', icon: '🗓' },
   { name: 'reports', label: 'Reports', icon: '📊' },
   { name: 'attendance', label: 'Attendance', icon: '✓' },
+  { name: 'transcripts', label: 'Transcripts', icon: '📄' },
 ];
 
 function CustomDrawerContent({ navigation }: any) {
@@ -93,6 +94,7 @@ export default function AdminLayout() {
       <Drawer.Screen name="timetable" options={{ title: 'Timetable' }} />
       <Drawer.Screen name="reports" options={{ title: 'Reports' }} />
       <Drawer.Screen name="attendance" options={{ title: 'Attendance' }} />
+      <Drawer.Screen name="transcripts" options={{ title: 'Transcripts' }} />
     </Drawer>
   );
 }

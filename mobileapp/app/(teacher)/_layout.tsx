@@ -40,6 +40,7 @@ export default function TeacherLayout() {
       <Tabs.Screen name="results" options={{ title: 'Results', tabBarLabel: 'Results', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🏆</Text> }} />
       <Tabs.Screen name="materials" options={{ title: 'Materials', tabBarLabel: 'Files', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📁</Text> }} />
       <Tabs.Screen name="students" options={{ title: 'Students', tabBarLabel: 'Students', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>👩‍🎓</Text> }} />
+      <Tabs.Screen name="transcripts" options={{ title: 'Transcripts', tabBarLabel: 'Transcripts', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📄</Text> }} />
       <Tabs.Screen name="timetable" options={{ title: 'Timetable', tabBarLabel: 'Schedule', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🗓</Text> }} />
       <Tabs.Screen name="attendance" options={{ title: 'Attendance', tabBarLabel: 'Attendance', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>✓</Text> }} />
       <Tabs.Screen name="profile" options={{ title: 'My Profile', tabBarLabel: 'Profile', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>👤</Text> }} />
