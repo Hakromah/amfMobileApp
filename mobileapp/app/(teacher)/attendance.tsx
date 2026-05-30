@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
-  TouchableOpacity, ScrollView, RefreshControl, Alert, Switch,
+  TouchableOpacity, ScrollView, RefreshControl, Alert, TextInput, Modal
 } from 'react-native';
 import api from '@/hooks/lib/api';
 
@@ -12,14 +12,28 @@ interface Student {
   userId?: string;
 }
 interface ClassItem { id: number; name: string; }
-interface AttendanceRecord { studentId: number; present: boolean; }
+interface AttendanceRecord {
+  studentId: number;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'SICK';
+}
 interface HistorySession {
   id: number;
   date: string;
   presentCount: number;
   totalCount: number;
+  subjectName?: string;
+  sessionTime?: string;
+  notes?: string;
   records: { studentId: number; status: string }[];
 }
+
+const STATUS_DETAILS = {
+  PRESENT: { label: 'Present', color: '#10b981', bg: '#ecfdf5' },
+  ABSENT: { label: 'Absent', color: '#ef4444', bg: '#fef2f2' },
+  LATE: { label: 'Late', color: '#f59e0b', bg: '#fffbeb' },
+  EXCUSED: { label: 'Excused', color: '#3b82f6', bg: '#eff6ff' },
+  SICK: { label: 'Sick', color: '#8b5cf6', bg: '#f5f3ff' },
+};
 
 export default function TeacherAttendanceScreen() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -34,6 +48,13 @@ export default function TeacherAttendanceScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [classPickerOpen, setClassPickerOpen] = useState(false);
+
+  // New Fields
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [subjectPickerOpen, setSubjectPickerOpen] = useState(false);
+  const [otherNote, setOtherNote] = useState<string>('');
+  const [sessionTime, setSessionTime] = useState<string>('');
 
   // Fetch teacher's classes on mount
   useEffect(() => {
@@ -51,14 +72,27 @@ export default function TeacherAttendanceScreen() {
     init();
   }, []);
 
+  const fetchSubjects = async (classId: string) => {
+    try {
+      const res = await api.get(`/teacher/classes/${classId}/subjects`);
+      setSubjects(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      try {
+        const fallback = await api.get('/teacher/subjects');
+        setSubjects(Array.isArray(fallback.data) ? fallback.data : []);
+      } catch {
+        setSubjects([]);
+      }
+    }
+  };
+
   const fetchStudentsByClass = useCallback(async (classId: string) => {
     try {
-      // ✅ Correct endpoint: /teacher/classes/:id/students
       const res = await api.get(`/teacher/classes/${classId}/students`);
       const list = Array.isArray(res.data) ? res.data : [];
       setStudents(list);
       if (!isEditing) {
-        setAttendance(list.map((s: Student) => ({ studentId: s.id, present: true })));
+        setAttendance(list.map((s: Student) => ({ studentId: s.id, status: 'PRESENT' })));
       }
     } catch (e: any) {
       console.error('[Attendance] students:', e?.response?.status);
@@ -67,7 +101,6 @@ export default function TeacherAttendanceScreen() {
 
   const fetchHistory = async (classId: string) => {
     try {
-      // ✅ Correct endpoint: /teacher/classes/:id/attendance-history
       const res = await api.get(`/teacher/classes/${classId}/attendance-history`);
       setHistory(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
@@ -80,8 +113,12 @@ export default function TeacherAttendanceScreen() {
     setIsEditing(false);
     setCurrentSessionId(null);
     setClassPickerOpen(false);
+    setSelectedSubject('');
+    setOtherNote('');
+    setSessionTime('');
     if (view === 'mark') {
       fetchStudentsByClass(classId);
+      fetchSubjects(classId);
     } else {
       fetchHistory(classId);
     }
@@ -91,11 +128,14 @@ export default function TeacherAttendanceScreen() {
     try {
       setIsEditing(true);
       setCurrentSessionId(session.id);
+      setSelectedSubject(session.subjectName ? 'other' : '');
+      setOtherNote(session.notes || '');
+      setSessionTime(session.sessionTime || '');
       const studentRes = await api.get(`/teacher/classes/${selectedClass}/students`);
       setStudents(Array.isArray(studentRes.data) ? studentRes.data : []);
       setAttendance(session.records.map(r => ({
         studentId: r.studentId,
-        present: r.status === 'PRESENT',
+        status: (r.status || 'PRESENT') as 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'SICK',
       })));
       setView('mark');
     } catch (e) {
@@ -105,18 +145,26 @@ export default function TeacherAttendanceScreen() {
 
   const handleSubmit = async () => {
     if (!selectedClass) return;
+    if (!selectedSubject) {
+      Alert.alert('Validation', 'Please select a subject or "Other" to proceed.');
+      return;
+    }
     setSubmitting(true);
+    const subjectObj = selectedSubject !== 'other' ? subjects.find(sub => String(sub.id) === selectedSubject) : null;
     const payload = {
       classId: parseInt(selectedClass),
       date: new Date().toISOString().split('T')[0],
+      subjectId: subjectObj ? subjectObj.id : null,
+      subjectName: subjectObj ? subjectObj.name : 'Other',
+      sessionTime: sessionTime.trim() || null,
+      notes: selectedSubject === 'other' ? otherNote : null,
       records: attendance.map(a => ({
         studentId: a.studentId,
-        status: a.present ? 'PRESENT' : 'ABSENT',
+        status: a.status,
       })),
     };
     try {
       if (isEditing && currentSessionId) {
-        // ✅ Correct endpoint: PUT /teacher/attendance/:sessionId
         await api.put(`/teacher/attendance/${currentSessionId}`, payload);
         Alert.alert('Success', 'Session updated successfully.');
         setIsEditing(false);
@@ -124,12 +172,14 @@ export default function TeacherAttendanceScreen() {
         setView('history');
         fetchHistory(selectedClass);
       } else {
-        // ✅ Correct endpoint: POST /teacher/attendance
         await api.post('/teacher/attendance', payload);
         Alert.alert('Success', 'Attendance finalized.');
         setSelectedClass('');
         setStudents([]);
         setAttendance([]);
+        setSelectedSubject('');
+        setOtherNote('');
+        setSessionTime('');
       }
     } catch (e: any) {
       Alert.alert('Error', 'Sync failed. Please try again.');
@@ -139,12 +189,33 @@ export default function TeacherAttendanceScreen() {
     }
   };
 
-  const togglePresence = (studentId: number) => {
-    setAttendance(prev => prev.map(a => a.studentId === studentId ? { ...a, present: !a.present } : a));
+  const cycleStatus = (studentId: number) => {
+    const statuses: ('PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'SICK')[] = [
+      'PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'SICK'
+    ];
+    setAttendance(prev => prev.map(a => {
+      if (a.studentId === studentId) {
+        const nextIdx = (statuses.indexOf(a.status) + 1) % statuses.length;
+        return { ...a, status: statuses[nextIdx] };
+      }
+      return a;
+    }));
   };
 
-  const presentCount = attendance.filter(a => a.present).length;
+  const presentCount = attendance.filter(a => a.status === 'PRESENT').length;
   const rate = students.length > 0 ? Math.round((presentCount / students.length) * 100) : 0;
+
+  const getSessionStats = (records: { studentId: number; status: string }[]) => {
+    let p = 0, a = 0, l = 0, e = 0, s = 0;
+    records.forEach(r => {
+      if (r.status === 'PRESENT') p++;
+      else if (r.status === 'ABSENT') a++;
+      else if (r.status === 'LATE') l++;
+      else if (r.status === 'EXCUSED') e++;
+      else if (r.status === 'SICK') s++;
+    });
+    return { p, a, l, e, s };
+  };
 
   if (loading) return (
     <View style={s.centered}><ActivityIndicator size="large" color="#10b981" /></View>
@@ -188,6 +259,38 @@ export default function TeacherAttendanceScreen() {
 
           {view === 'mark' ? (
             <>
+              {/* Form Container for Subject & Session details */}
+              <View style={s.formContainer}>
+                <Text style={s.formLabel}>SESSION SUBJECT *</Text>
+                <TouchableOpacity style={s.pickerTrigger} onPress={() => setSubjectPickerOpen(true)}>
+                  <Text style={selectedSubject ? s.pickerTextActive : s.pickerTextPlaceholder}>
+                    {selectedSubject === 'other' ? 'Other / Custom Event' : (subjects.find(sub => String(sub.id) === selectedSubject)?.name || 'Select subject...')}
+                  </Text>
+                </TouchableOpacity>
+
+                {selectedSubject === 'other' && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={s.formLabel}>CUSTOM EVENT NAME *</Text>
+                    <TextInput
+                      style={s.textInput}
+                      placeholder="e.g. Missed School Trip, Event..."
+                      placeholderTextColor="#94a3b8"
+                      value={otherNote}
+                      onChangeText={setOtherNote}
+                    />
+                  </View>
+                )}
+
+                <Text style={[s.formLabel, { marginTop: 10 }]}>SESSION HOUR (TIME)</Text>
+                <TextInput
+                  style={s.textInput}
+                  placeholder="e.g. 09:00"
+                  placeholderTextColor="#94a3b8"
+                  value={sessionTime}
+                  onChangeText={setSessionTime}
+                />
+              </View>
+
               {/* Stats bar */}
               <View style={s.statsBar}>
                 <View style={s.statBox}>
@@ -217,11 +320,12 @@ export default function TeacherAttendanceScreen() {
                 ListEmptyComponent={<Text style={s.empty}>No students found for this class.</Text>}
                 renderItem={({ item }) => {
                   const rec = attendance.find(a => a.studentId === item.id);
-                  const isPresent = rec?.present ?? true;
+                  const status = rec?.status ?? 'PRESENT';
+                  const details = STATUS_DETAILS[status] || STATUS_DETAILS.PRESENT;
                   return (
-                    <View style={[s.studentRow, !isPresent && s.studentRowAbsent]}>
-                      <View style={[s.studentAvatar, { backgroundColor: isPresent ? '#10b981' + '22' : '#ef4444' + '22' }]}>
-                        <Text style={[s.studentAvatarText, { color: isPresent ? '#10b981' : '#ef4444' }]}>
+                    <TouchableOpacity style={[s.studentRow, { borderLeftWidth: 6, borderLeftColor: details.color }]} onPress={() => cycleStatus(item.id)}>
+                      <View style={[s.studentAvatar, { backgroundColor: details.color + '22' }]}>
+                        <Text style={[s.studentAvatarText, { color: details.color }]}>
                           {(item.name || item.username || 'S').charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -229,18 +333,11 @@ export default function TeacherAttendanceScreen() {
                         <Text style={s.studentName}>{item.username || item.name || 'Unknown'}</Text>
                         <Text style={s.studentId}>#{item.userId || item.id}</Text>
                       </View>
-                      <View style={s.presenceRight}>
-                        <Text style={[s.presenceLabel, { color: isPresent ? '#10b981' : '#ef4444' }]}>
-                          {isPresent ? 'Present' : 'Absent'}
-                        </Text>
-                        <Switch
-                          value={isPresent}
-                          onValueChange={() => togglePresence(item.id)}
-                          trackColor={{ false: '#fecaca', true: '#bbf7d0' }}
-                          thumbColor={isPresent ? '#10b981' : '#ef4444'}
-                        />
+                      <View style={[s.statusBadge, { backgroundColor: details.bg }]}>
+                        <Text style={[s.statusBadgeText, { color: details.color }]}>{details.label}</Text>
+                        <Text style={s.cycleHint}>Tap to Cycle 🔄</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   );
                 }}
                 ListFooterComponent={
@@ -254,24 +351,37 @@ export default function TeacherAttendanceScreen() {
               />
             </>
           ) : (
-            /* History view */
+            /* History view with scroll bar showing sessions */
             <FlatList
               data={history}
               keyExtractor={i => String(i.id)}
               contentContainerStyle={s.historyList}
               ListEmptyComponent={<Text style={s.empty}>No previous sessions for this class.</Text>}
-              renderItem={({ item, index }) => (
-                <View style={s.historyCard}>
-                  <View style={s.historyLeft}>
-                    <Text style={s.historySession}>Session #{index + 1}</Text>
-                    <Text style={s.historyDate}>{new Date(item.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
-                    <Text style={s.historySub}>{item.presentCount} Present · {item.totalCount - item.presentCount} Absent</Text>
+              renderItem={({ item, index }) => {
+                const stats = getSessionStats(item.records);
+                return (
+                  <View style={s.historyCard}>
+                    <View style={s.historyLeft}>
+                      <View style={s.historyMetaRow}>
+                        <Text style={s.historySession}>Session #{index + 1}</Text>
+                        {item.sessionTime && <Text style={s.historyTime}>⏰ {item.sessionTime}</Text>}
+                      </View>
+                      <Text style={s.historyDate}>{new Date(item.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
+                      <Text style={s.historySubject} numberOfLines={1}>{item.subjectName || item.notes || 'General Session'}</Text>
+                      <View style={s.historyStatsRow}>
+                        <View style={[s.miniStat, { backgroundColor: '#ecfdf5' }]}><Text style={[s.miniStatText, { color: '#10b981' }]}>{stats.p} P</Text></View>
+                        <View style={[s.miniStat, { backgroundColor: '#fef2f2' }]}><Text style={[s.miniStatText, { color: '#ef4444' }]}>{stats.a} A</Text></View>
+                        <View style={[s.miniStat, { backgroundColor: '#fffbeb' }]}><Text style={[s.miniStatText, { color: '#f59e0b' }]}>{stats.l} L</Text></View>
+                        <View style={[s.miniStat, { backgroundColor: '#eff6ff' }]}><Text style={[s.miniStatText, { color: '#3b82f6' }]}>{stats.e} E</Text></View>
+                        <View style={[s.miniStat, { backgroundColor: '#f5f3ff' }]}><Text style={[s.miniStatText, { color: '#8b5cf6' }]}>{stats.s} S</Text></View>
+                      </View>
+                    </View>
+                    <TouchableOpacity style={s.historyEditBtn} onPress={() => handleEditSession(item)}>
+                      <Text style={s.historyEditText}>Modify</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={s.historyEditBtn} onPress={() => handleEditSession(item)}>
-                    <Text style={s.historyEditText}>Modify</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+                );
+              }}
             />
           )}
         </>
@@ -302,6 +412,29 @@ export default function TeacherAttendanceScreen() {
           </View>
         </View>
       )}
+
+      {/* Subject Picker Sheet */}
+      {subjectPickerOpen && (
+        <View style={s.pickerOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setSubjectPickerOpen(false)} />
+          <View style={s.pickerCard}>
+            <Text style={s.pickerTitle}>Select Session Subject</Text>
+            <ScrollView>
+              {subjects.map(sub => (
+                <TouchableOpacity key={sub.id} style={[s.pickerItem, selectedSubject === String(sub.id) && s.pickerItemActive]} onPress={() => { setSelectedSubject(String(sub.id)); setSubjectPickerOpen(false); }}>
+                  <Text style={[s.pickerItemText, selectedSubject === String(sub.id) && s.pickerItemTextActive]}>{sub.name} ({sub.code || 'N/A'})</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={[s.pickerItem, selectedSubject === 'other' && s.pickerItemActive]} onPress={() => { setSelectedSubject('other'); setSubjectPickerOpen(false); }}>
+                <Text style={[s.pickerItemText, selectedSubject === 'other' && s.pickerItemTextActive, { color: '#f59e0b', fontWeight: 'bold' }]}>⚠️ Other / Custom Event</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            <TouchableOpacity style={s.pickerCancel} onPress={() => setSubjectPickerOpen(false)}>
+              <Text style={s.pickerCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -316,43 +449,69 @@ const s = StyleSheet.create({
   classSelector: { backgroundColor: '#f1f5f9', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 160 },
   classSelectorText: { fontSize: 13, fontWeight: '800', color: '#1e293b', flex: 1 },
   classSelectorArrow: { color: '#64748b', fontSize: 10 },
+  
+  // Toggle
   viewToggle: { flexDirection: 'row', padding: 12, gap: 10, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   toggleBtn: { flex: 1, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f1f5f9', alignItems: 'center' },
   toggleBtnActive: { backgroundColor: '#2563eb' },
   toggleBtnDark: { backgroundColor: '#1e293b' },
   toggleBtnText: { fontWeight: '800', fontSize: 12, color: '#64748b' },
   toggleBtnTextActive: { color: '#fff' },
+  
+  // Stats
   statsBar: { flexDirection: 'row', backgroundColor: '#1e293b', padding: 16, gap: 0 },
   statBox: { flex: 1, alignItems: 'center' },
   statNum: { fontSize: 22, fontWeight: '900', color: '#f8fafc' },
   statLabel: { fontSize: 9, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginTop: 2 },
+  
+  // Form Details
+  formContainer: { backgroundColor: '#fff', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+  formLabel: { fontSize: 9, fontWeight: '900', color: '#94a3b8', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 },
+  pickerTrigger: { backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: '#e2e8f0', minHeight: 44, justifyContent: 'center' },
+  pickerTextPlaceholder: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+  pickerTextActive: { color: '#1e293b', fontSize: 13, fontWeight: '700' },
+  textInput: { backgroundColor: '#f8fafc', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, borderWidth: 1, borderColor: '#e2e8f0', fontSize: 13, fontWeight: '600', color: '#1e293b', minHeight: 44 },
+
+  // List
   studentList: { padding: 12, gap: 10, paddingBottom: 24 },
   studentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 12, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
-  studentRowAbsent: { opacity: 0.75, backgroundColor: '#fef2f2' },
   studentAvatar: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   studentAvatarText: { fontSize: 16, fontWeight: '900' },
   studentInfo: { flex: 1 },
   studentName: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
   studentId: { fontSize: 10, color: '#94a3b8', fontWeight: '600', marginTop: 2 },
-  presenceRight: { alignItems: 'flex-end', gap: 4 },
-  presenceLabel: { fontSize: 9, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignItems: 'center', minWidth: 80 },
+  statusBadgeText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cycleHint: { fontSize: 7, color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase', marginTop: 2 },
+
+  // Submit
   submitBtn: { backgroundColor: '#2563eb', borderRadius: 16, paddingVertical: 16, alignItems: 'center', margin: 12, marginTop: 16 },
   submitBtnDisabled: { opacity: 0.6 },
   submitText: { color: '#fff', fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
-  historyList: { padding: 14, gap: 12 },
-  historyCard: { backgroundColor: '#fff', borderRadius: 18, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  historyLeft: {},
-  historySession: { fontSize: 10, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 2 },
-  historyDate: { fontSize: 16, fontWeight: '900', color: '#1e293b', marginTop: 4 },
-  historySub: { fontSize: 11, fontWeight: '700', color: '#64748b', marginTop: 4 },
-  historyEditBtn: { backgroundColor: '#1e293b', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
-  historyEditText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+  
+  // History View
+  historyList: { padding: 14, gap: 8 },
+  historyCard: { backgroundColor: '#fff', borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 5, elevation: 1, marginBottom: 4 },
+  historyLeft: { flex: 1, gap: 2 },
+  historyMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  historySession: { fontSize: 9, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.5 },
+  historyTime: { fontSize: 10, color: '#64748b', fontWeight: '700' },
+  historyDate: { fontSize: 14, fontWeight: '900', color: '#1e293b', marginTop: 2 },
+  historySubject: { fontSize: 12, fontWeight: '700', color: '#475569', marginTop: 2 },
+  historyStatsRow: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  miniStat: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6 },
+  miniStatText: { fontSize: 9, fontWeight: '900' },
+  historyEditBtn: { backgroundColor: '#1e293b', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  historyEditText: { color: '#fff', fontWeight: '800', fontSize: 11 },
+
   empty: { textAlign: 'center', padding: 40, color: '#94a3b8', fontWeight: '600' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40, gap: 16 },
   emptyStateIcon: { fontSize: 64 },
   emptyStateTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b', textTransform: 'uppercase' },
   emptyStateSub: { fontSize: 13, fontWeight: '600', color: '#94a3b8', textAlign: 'center', lineHeight: 20 },
-  pickerOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#00000080', justifyContent: 'flex-end' },
+  
+  // Picker Overlay
+  pickerOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#00000080', justifyContent: 'flex-end', zIndex: 9999 },
   pickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '60%' },
   pickerTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 16 },
   pickerItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingHorizontal: 4 },

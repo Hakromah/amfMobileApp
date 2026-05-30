@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
-  RefreshControl, Alert, TouchableOpacity, Modal, ScrollView
+  RefreshControl, Alert, TouchableOpacity, Modal, ScrollView, Dimensions
 } from 'react-native';
 import api from '@/hooks/lib/api';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { LineChart } from 'react-native-chart-kit';
 
 interface Result {
   id: number;
@@ -15,6 +14,7 @@ interface Result {
   examName?: string;
   term?: string;
   semester?: string;
+  classAverage?: number;
   student?: { name?: string; userId?: string; id?: number };
 }
 
@@ -53,103 +53,34 @@ export default function StudentResultsScreen() {
   const averageScore = results.length > 0 ? (totalScore / results.length).toFixed(1) : '0';
   const highestScore = results.length > 0 ? Math.max(...results.map(r => r.marks)) : 0;
 
-  const downloadTranscript = async () => {
-    if (filtered.length === 0) return Alert.alert('Error', 'No results for transcript');
-
-    const sInfo = filtered[0]?.student;
-    const sName = sInfo?.name || 'Unknown Student';
-    const sId = sInfo?.userId || sInfo?.id || 'N/A';
-    const date = new Date().toLocaleDateString();
-
-    const fTotal = filtered.reduce((acc, curr) => acc + (curr.marks || 0), 0);
-    const fAvg = (fTotal / filtered.length).toFixed(1);
-    const isPassing = parseFloat(fAvg) >= 50;
-    const status = isPassing ? 'GOOD STANDING' : 'PROBATION';
-
-    let html = `
-      <html>
-        <head>
-          <style>
-            body { font-family: Helvetica, sans-serif; padding: 40px; color: #1e293b; }
-            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
-            .header h1 { margin: 0; color: #1e293b; }
-            .header p { margin: 5px 0 0; color: #64748b; font-size: 14px; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; background: #f8fafc; padding: 25px; border-radius: 12px; }
-            .info-item { display: flex; flex-direction: column; }
-            .info-label { font-size: 12px; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; }
-            .info-val { font-size: 16px; font-weight: bold; color: #1e293b; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th { background: #2563eb; color: white; padding: 12px; text-align: left; font-size: 14px; font-weight: bold; }
-            td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-            .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <h1>AMF INTERNATIONAL SCHOOL</h1>
-              <p>Official Academic Transcript | Student Copy</p>
-            </div>
-            <div style="text-align: right">
-              <p>Generated: ${date}</p>
-            </div>
-          </div>
-
-          <h2 style="font-size: 18px; margin-bottom: 15px;">STUDENT PROFILE</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Full Name</span>
-              <span class="info-val">${sName.toUpperCase()}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Student ID</span>
-              <span class="info-val">${sId}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">GPA Equivalent</span>
-              <span class="info-val">${fAvg}%</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Current Status</span>
-              <span class="info-val" style="color: ${isPassing ? '#16a34a' : '#dc2626'}">${status}</span>
-            </div>
-          </div>
-
-          <h2 style="font-size: 18px; margin-bottom: 15px;">EXAMINATION RECORDS</h2>
-          <table>
-            <tr>
-              <th>Subject / Examination</th>
-              <th>Term</th>
-              <th>Semester</th>
-              <th>Score</th>
-              <th>Grade</th>
-            </tr>
-            ${filtered.map(r => `
-              <tr>
-                <td><strong>${r.examName || 'N/A'}</strong><br/><span style="font-size: 12px; color: #64748b;">${r.className || ''}</span></td>
-                <td>${r.term || '-'}</td>
-                <td>${r.semester || '-'}</td>
-                <td><strong>${r.marks}%</strong></td>
-                <td>${r.grade || 'N/A'}</td>
-              </tr>
-            `).join('')}
-          </table>
-
-          <div class="footer">
-            <p><strong>Office of the Registrar</strong></p>
-            <p>This document is a verified electronic student record issued by the AMF Management System.</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    try {
-      const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-    } catch (e) {
-      Alert.alert('Error', 'Failed to compile transcript.');
-    }
-  };
+  const chartData = useMemo(() => {
+    // Return early if no results
+    if (results.length === 0) return null;
+    
+    // Sort results chronologically or reverse order so they read left to right
+    const sortedResults = [...results].reverse();
+    
+    return {
+      labels: sortedResults.map(r => {
+        const name = r.examName || 'Exam';
+        return name.length > 8 ? name.substring(0, 6) + '..' : name;
+      }),
+      datasets: [
+        {
+          data: sortedResults.map(r => r.marks || 0),
+          color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`, // Blue
+          strokeWidth: 3,
+        },
+        {
+          data: sortedResults.map(r => r.classAverage || 0),
+          color: (opacity = 1) => `rgba(148, 163, 184, ${opacity})`, // Grey
+          strokeWidth: 2,
+          strokeDashArray: [4, 4],
+        }
+      ],
+      legend: ['My Score', 'Class Avg']
+    };
+  }, [results]);
 
   if (loading) return (
     <View style={s.centered}>
@@ -166,10 +97,6 @@ export default function StudentResultsScreen() {
           <Text style={s.title}>Academic <Text style={{ color: '#2563eb' }}>Portal.</Text></Text>
           <Text style={s.subText}>OVERALL AVERAGE: {averageScore}%</Text>
         </View>
-        <TouchableOpacity style={s.exportBtn} onPress={downloadTranscript}>
-          <Text style={s.exportIcon}>📄</Text>
-          <Text style={s.exportText}>EXPORT</Text>
-        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -192,6 +119,30 @@ export default function StudentResultsScreen() {
                 <Text style={s.statDesc}>Total exams taken</Text>
               </View>
             </View>
+
+            {/* Score Trend Chart */}
+            {chartData && (
+              <View style={s.chartContainer}>
+                <Text style={s.chartTitle}>📈 Score Trends vs. Class Average</Text>
+                <LineChart
+                  data={chartData}
+                  width={Dimensions.get('window').width - 32}
+                  height={200}
+                  chartConfig={{
+                    backgroundColor: '#ffffff',
+                    backgroundGradientFrom: '#ffffff',
+                    backgroundGradientTo: '#ffffff',
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+                    style: { borderRadius: 16 },
+                    propsForDots: { r: '4', strokeWidth: '2', stroke: '#2563eb' }
+                  }}
+                  bezier
+                  style={s.chart}
+                />
+              </View>
+            )}
 
             {/* Filter */}
             <View style={s.filterRow}>
@@ -304,4 +255,7 @@ const s = StyleSheet.create({
   modalItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   modalItemText: { fontSize: 14, fontWeight: '800', color: '#64748b' },
   modalActive: { color: '#2563eb', fontWeight: '900' },
+  chartContainer: { backgroundColor: '#fff', padding: 16, borderRadius: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
+  chartTitle: { fontSize: 12, fontWeight: '900', color: '#1e293b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  chart: { borderRadius: 16, marginLeft: -16 },
 });

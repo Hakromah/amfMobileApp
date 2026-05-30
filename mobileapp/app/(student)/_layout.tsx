@@ -38,6 +38,7 @@ export default function StudentLayout() {
       <Tabs.Screen name="classes" options={{ title: 'My Classes', tabBarLabel: 'Classes', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🏫</Text> }} />
       <Tabs.Screen name="exams" options={{ title: 'Exams', tabBarLabel: 'Exams', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📝</Text> }} />
       <Tabs.Screen name="results" options={{ title: 'My Results', tabBarLabel: 'Results', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🏆</Text> }} />
+      <Tabs.Screen name="transcripts" options={{ title: 'Transcripts', tabBarLabel: 'Transcripts', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📄</Text> }} />
       <Tabs.Screen name="materials" options={{ title: 'Materials', tabBarLabel: 'Files', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>📁</Text> }} />
       <Tabs.Screen name="timetable" options={{ title: 'Timetable', tabBarLabel: 'Schedule', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>🗓</Text> }} />
       <Tabs.Screen name="attendance" options={{ title: 'Attendance', tabBarLabel: 'Attendance', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18 }}>✓</Text> }} />

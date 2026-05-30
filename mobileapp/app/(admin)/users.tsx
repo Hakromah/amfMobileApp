@@ -46,6 +46,16 @@ export default function UsersScreen() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [form, setForm] = useState<Form>(INITIAL_FORM);
   const [creating, setCreating] = useState(false);
+  const [emailDuplicate, setEmailDuplicate] = useState<UserItem | null>(null);
+
+  const checkEmailDuplicate = (email: string) => {
+    if (!email.trim()) {
+      setEmailDuplicate(null);
+      return;
+    }
+    const match = users.find(u => u.email && u.email.toLowerCase() === email.trim().toLowerCase());
+    setEmailDuplicate(match || null);
+  };
 
   // Picker states
   const [genderPickerOpen, setGenderPickerOpen] = useState(false);
@@ -97,6 +107,7 @@ export default function UsersScreen() {
       Alert.alert('Success', 'User created successfully.');
       setIsFormOpen(false);
       setForm(INITIAL_FORM);
+      setEmailDuplicate(null);
       fetchUsers();
     } catch (e: any) {
       const msg = e?.response?.data?.error?.message
@@ -142,7 +153,7 @@ export default function UsersScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        <TouchableOpacity style={s.createBtn} onPress={() => { setForm(INITIAL_FORM); setIsFormOpen(true); }}>
+        <TouchableOpacity style={s.createBtn} onPress={() => { setForm(INITIAL_FORM); setEmailDuplicate(null); setIsFormOpen(true); }}>
           <Text style={s.createBtnText}>＋ New Identity</Text>
         </TouchableOpacity>
       </View>
@@ -186,7 +197,7 @@ export default function UsersScreen() {
               {/* Blue header like the web */}
               <View style={s.modalHeader}>
                 <Text style={s.modalTitle}>INITIALIZE NEW IDENTITY</Text>
-                <TouchableOpacity onPress={() => setIsFormOpen(false)} style={s.closeBtn}>
+                <TouchableOpacity onPress={() => { setIsFormOpen(false); setEmailDuplicate(null); }} style={s.closeBtn}>
                   <Text style={s.closeBtnText}>✕</Text>
                 </TouchableOpacity>
               </View>
@@ -204,7 +215,24 @@ export default function UsersScreen() {
                   </View>
                   <View style={s.halfField}>
                     <Text style={s.label}>INSTITUTIONAL EMAIL *</Text>
-                    <TextInput style={s.input} placeholder="email@amf.edu" placeholderTextColor="#94a3b8" value={form.email} onChangeText={v => setField('email', v)} keyboardType="email-address" autoCapitalize="none" />
+                    <TextInput 
+                      style={[s.input, emailDuplicate && s.inputWarning]} 
+                      placeholder="email@amf.edu" 
+                      placeholderTextColor="#94a3b8" 
+                      value={form.email} 
+                      onChangeText={v => {
+                        setField('email', v);
+                        checkEmailDuplicate(v);
+                      }} 
+                      keyboardType="email-address" 
+                      autoCapitalize="none" 
+                    />
+                    {emailDuplicate && (
+                      <View style={s.warningBox}>
+                        <Text style={s.warningText}>⚠️ Already registered to: </Text>
+                        <Text style={s.warningSubText}>{emailDuplicate.name} ({emailDuplicate.schoolRole})</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -262,7 +290,11 @@ export default function UsersScreen() {
                 <TextInput style={s.input} placeholder="Full Residential Address" placeholderTextColor="#94a3b8" value={form.address} onChangeText={v => setField('address', v)} autoCapitalize="sentences" />
 
                 {/* Submit */}
-                <TouchableOpacity style={s.submitBtn} onPress={handleCreate} disabled={creating}>
+                <TouchableOpacity 
+                  style={[s.submitBtn, (creating || emailDuplicate !== null) && s.submitDisabled]} 
+                  onPress={handleCreate} 
+                  disabled={creating || emailDuplicate !== null}
+                >
                   {creating ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>AUTHORIZE STORAGE</Text>}
                 </TouchableOpacity>
               </ScrollView>
@@ -336,7 +368,12 @@ const s = StyleSheet.create({
   roleChipText: { fontSize: 11, fontWeight: '900', color: '#64748b' },
   roleSelected: { fontSize: 10, fontWeight: '700', color: '#3b82f6', marginTop: 4, textAlign: 'center', letterSpacing: 1 },
   submitBtn: { backgroundColor: '#0f172a', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
+  submitDisabled: { opacity: 0.4 },
   submitText: { color: '#fff', fontWeight: '900', fontSize: 12, letterSpacing: 2 },
+  warningBox: { backgroundColor: '#fef2f2', borderColor: '#fee2e2', borderWidth: 1, borderRadius: 8, padding: 8, marginTop: 6 },
+  warningText: { color: '#ef4444', fontSize: 10, fontWeight: '800' },
+  warningSubText: { color: '#ef4444', fontSize: 9, fontWeight: '600', marginTop: 2 },
+  inputWarning: { borderColor: '#ef4444', backgroundColor: '#fff5f5' },
   // Sheet Picker
   sheetOverlay: { flex: 1, backgroundColor: '#00000080', justifyContent: 'flex-end' },
   sheetCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },

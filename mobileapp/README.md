@@ -48,3 +48,28 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+
+### TO BUILD THE MOBILE .APK and deploy to hetzner server
+- npx eas-cli login
+- npx eas-cli build --platform android --profile preview
+
+### copy the build link to open the browser and download the APK in your expo account
+- rename the .apk file to whatever you want (my-school.apk)
+- upload it to hetzner server by adding it to the frontend app public folder.
+- execute git command to commit and push the changes to the git repository.
+- login to hetzner server and
+- cd /var/www/AMFOFANA/frontend
+- git pull origin main
+- npm install
+- npm run build
+- pm2 restart amfofana-frontend
+- And now this link [https://hassanskdev.online/my-school.apk] and send it to the user to install.it will open and show a message on the top right corner "This developer has not published an app yet, and may be testing it." click on 'Continue anyway' to proceed.
+
+
+
+
+
+
+
